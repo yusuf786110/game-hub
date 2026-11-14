@@ -1,4 +1,4 @@
-// Game engine for Buckshot Roulette with complete Dealer AI & Item mechanics
+// Game engine for Buckshot Roulette with realistic loading phase, Dealer AI & Items
 
 export const ITEMS = {
   magnifier: { icon: "🔍", name: "Magnifying Glass", tip: "Inspect the chamber to see the current shell" },
@@ -25,15 +25,12 @@ function shuffle(a) {
 export function reload(s) {
   let total, live;
   if (s.round === 0) {
-    // Round 1: tutorial/starter feel: 3-4 shells
     total = rnd(3, 4);
     live = rnd(1, total - 1);
   } else if (s.round === 1) {
-    // Round 2: 4-6 shells
     total = rnd(4, 6);
     live = rnd(1, total - 1);
   } else {
-    // Round 3+: 5-8 shells
     total = rnd(5, 8);
     live = rnd(2, total - 2);
   }
@@ -42,8 +39,10 @@ export function reload(s) {
   s.live = live;
   s.blank = total - live;
   s.chamber = shuffle([...Array(live).fill("L"), ...Array(total - live).fill("B")]);
-  s.initialChamber = [...s.chamber]; // Keep track of loaded sequence for animations
+  s.visibleShells = [...s.chamber]; // Shown ONLY during loading phase
+  s.loadingPhase = true;
   s.known = null;
+  s.phoneInfo = null;
   s.saw = false;
 
   // Distribute items
@@ -75,13 +74,19 @@ export function newMatch(isDealerMatch = true) {
     winner: null,
     round: 0,
     chamber: [],
-    initialChamber: [],
+    visibleShells: [],
+    loadingPhase: true,
     live: 0,
     blank: 0,
     lastAction: null
   };
   reload(s);
   return s;
+}
+
+export function finishLoadingPhase(s) {
+  s.loadingPhase = false;
+  s.visibleShells = null;
 }
 
 function endShot(s, p, keepTurn) {
@@ -112,7 +117,7 @@ function endShot(s, p, keepTurn) {
 
 // Executes an action in the game engine
 export function act(s, p, a) {
-  if (!a || s.winner !== null || s.turn !== p) return false;
+  if (!a || s.winner !== null || s.turn !== p || s.loadingPhase) return false;
   const foe = 1 - p;
   const who = p === 1 && s.isDealer ? "The Dealer" : `Player ${p + 1}`;
   const foeName = foe === 1 && s.isDealer ? "The Dealer" : `Player ${foe + 1}`;
@@ -195,7 +200,6 @@ export function act(s, p, a) {
     }
 
     s.saw = false;
-    // Shooting yourself with a blank keeps your turn!
     endShot(s, p, x === "B" && t === p);
     return true;
   }
@@ -205,13 +209,14 @@ export function act(s, p, a) {
 
 // AI decision maker for The Dealer
 export function dealerThink(s) {
-  if (s.turn !== 1 || s.winner !== null) return null;
+  if (s.turn !== 1 || s.winner !== null || s.loadingPhase) return null;
   const items = s.items[1];
-  const foeLives = s.lives[0];
   const dealerLives = s.lives[1];
   const liveCount = s.chamber.filter(c => c === "L").length;
   const blankCount = s.chamber.filter(c => c === "B").length;
   const total = s.chamber.length;
+
+  if (total === 0) return null;
 
   // 1. Heal if low
   if (dealerLives < s.max) {
@@ -222,20 +227,16 @@ export function dealerThink(s) {
   // 2. If Dealer knows the current shell
   if (s.known && s.known.by === 1) {
     if (s.known.shell === "L") {
-      // It's live! Check if we can saw
       if (!s.saw) {
         const sawIdx = items.indexOf("saw");
         if (sawIdx !== -1) return { t: "item", i: sawIdx };
       }
-      // Check cuffs
       if (!s.cuffed[0]) {
         const cuffIdx = items.indexOf("cuffs");
         if (cuffIdx !== -1) return { t: "item", i: cuffIdx };
       }
-      // Shoot player!
       return { t: "shoot", target: "foe" };
     } else {
-      // It's blank! Shoot himself to keep turn safely
       return { t: "shoot", target: "self" };
     }
   }
@@ -248,13 +249,13 @@ export function dealerThink(s) {
   const phoneIdx = items.indexOf("phone");
   if (phoneIdx !== -1 && total > 1) return { t: "item", i: phoneIdx };
 
-  // 5. Inverter: if 100% sure or mostly blanks
+  // 5. Inverter: if only blanks remain
   if (liveCount === 0 && blankCount > 0) {
     const invIdx = items.indexOf("inverter");
     if (invIdx !== -1) return { t: "item", i: invIdx };
   }
 
-  // 6. Cuffs if player has lots of items or lives
+  // 6. Cuffs if player has full life or lots of items
   if (!s.cuffed[0] && items.includes("cuffs") && total > 2) {
     return { t: "item", i: items.indexOf("cuffs") };
   }
@@ -263,19 +264,17 @@ export function dealerThink(s) {
   const probLive = liveCount / total;
 
   if (probLive > 0.5) {
-    // Higher chance live -> shoot player
     if (probLive >= 0.75 && !s.saw) {
       const sawIdx = items.indexOf("saw");
       if (sawIdx !== -1) return { t: "item", i: sawIdx };
     }
     return { t: "shoot", target: "foe" };
   } else {
-    // 50% or more blanks -> shoot self for extra turn
     return { t: "shoot", target: "self" };
   }
 }
 
-// Redacted view for network/local player
+// Redacted view: shells are visible ONLY during loadingPhase!
 export const view = (s, p) => ({
   isDealer: s.isDealer,
   lives: s.lives,
@@ -287,8 +286,11 @@ export const view = (s, p) => ({
   log: s.log.slice(-6),
   winner: s.winner,
   round: s.round,
-  live: s.live,
-  blank: s.blank,
+  loadingPhase: s.loadingPhase,
+  // Show live/blank counts & visible shells ONLY during loadingPhase
+  live: s.loadingPhase ? s.live : null,
+  blank: s.loadingPhase ? s.blank : null,
+  visibleShells: s.loadingPhase ? s.visibleShells : null,
   left: s.chamber.length,
   peek: s.known && s.known.by === p ? s.known.shell : null,
   phoneInfo: s.phoneInfo && s.phoneInfo.by === p ? s.phoneInfo : null,
