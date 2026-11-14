@@ -10,7 +10,7 @@ const GAMES = [
   { id: "snake", title: "Snake", emoji: "🐍", color: "var(--mint)", blurb: "Eat, grow, don't crash.", help: "Arrow keys or WASD. On a phone, use the buttons.", mod: snake },
   { id: "tictactoe", title: "Tic-Tac-Toe", emoji: "❌", color: "var(--pink)", blurb: "Beat the computer. Build a streak.", help: "You are X. Your score is your win streak.", mod: tictactoe },
   { id: "memory", title: "Memory Match", emoji: "🧠", color: "var(--sun)", blurb: "Find all 8 pairs in few moves.", help: "Flip two tiles. Fewer moves means a higher score.", mod: memory },
-  { id: "chamber", title: "Dead Chamber", emoji: "💥", color: "#b8c4ff", blurb: "Two players. One shotgun. Live or blank?", help: "Play on one device or online with a friend using a room code.", noBoard: true, mod: chamber }
+  { id: "chamber", title: "Buckshot Roulette", emoji: "💀", color: "#241920", blurb: "12-gauge shotgun vs The Dealer. Live or blank?", help: "Sign the waiver, enter the basement, and face The Dealer.", noBoard: true, mod: chamber }
 ];
 
 const $ = (id) => document.getElementById(id);
