@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Game Hub – quick games in your browser</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="top">
+    <h1>Game Hub</h1>
+    <label class="who">Your name
+      <input id="player" maxlength="12" placeholder="Player" autocomplete="nickname">
+    </label>
+  </header>
+
+  <main>
+    <section id="lobby">
+      <p class="lead">Pick a game. Beat your score. Get on the board.</p>
+      <div id="cards" class="cards"></div>
+    </section>
+
+    <section id="stage" hidden>
+      <button id="back" class="btn ghost">Back to games</button>
+      <div class="stage-grid">
+        <div>
+          <h2 id="gameTitle"></h2>
+          <p id="gameHelp" class="help"></p>
+          <div id="gameMount"></div>
+        </div>
+        <aside>
+          <h3>Top 10</h3>
+          <ol id="board" class="board"></ol>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
