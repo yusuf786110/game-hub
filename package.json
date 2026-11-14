@@ -1,0 +1,9 @@
+{
+  "name": "game-hub",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Play-in-the-browser game site with a serverless leaderboard API",
+  "scripts": {
+    "dev": "vercel dev"
+  }
+}
